@@ -91,16 +91,17 @@ public class Main {
         code = code.trim().replaceAll(" +", " ");
         code = code.replaceAll("\\R", " ");
         code = code.replace(";", ";\n");
+
         return code;
     }
 
     private static void compileAndExecuteCode(String code) throws Exception {
         JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
         StandardJavaFileManager fileManager = compiler.getStandardFileManager(null, null, null);
-        File outputFile = new File(OUTPUT_CLASS_NAME + ".java");
+        File outputFile = new File("src/output/" + OUTPUT_CLASS_NAME + ".java");
 
         try (PrintWriter printWriter = new PrintWriter(outputFile)) {
-            printWriter.println("public class " + OUTPUT_CLASS_NAME + " { public static void " + MAIN_METHOD_NAME + "(String[] args) { " + code + " } }");
+            printWriter.println("package output; public class " + OUTPUT_CLASS_NAME + " { public static void " + MAIN_METHOD_NAME + "(String[] args) { " + code + " } }");
         }
 
         Iterable<? extends JavaFileObject> fileObjects = fileManager.getJavaFileObjects(outputFile);
@@ -108,9 +109,9 @@ public class Main {
             throw new Exception("Kesalahan saat kompilasi.");
         }
 
-        URL[] urls = new URL[]{new File("").toURI().toURL()};
+        URL[] urls = new URL[]{new File("src/output").toURI().toURL()};
         URLClassLoader urlClassLoader = new URLClassLoader(urls);
-        Object belajarScript = urlClassLoader.loadClass(OUTPUT_CLASS_NAME).getDeclaredConstructor().newInstance();
-        belajarScript.getClass().getMethod(MAIN_METHOD_NAME).invoke(belajarScript);
+        Object belajarScript = urlClassLoader.loadClass("output." + OUTPUT_CLASS_NAME).getDeclaredConstructor().newInstance();
+        belajarScript.getClass().getMethod(MAIN_METHOD_NAME, String[].class).invoke(belajarScript, new Object[] { null });
     }
 }
