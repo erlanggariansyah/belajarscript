@@ -11,100 +11,106 @@ import java.util.Scanner;
 
 public class Main {
     private static final ExceptionHandler exceptionHandler = new ExceptionHandler();
+    private static final String OUTPUT_CLASS_NAME = "BelajarScript";
+    private static final String MAIN_METHOD_NAME = "main";
+    private static final String FILE_EXTENSION = ".bs";
 
-    public static void run(String code) throws Exception {
-        JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
-        StandardJavaFileManager fileManager = compiler.getStandardFileManager(null, null, null);
-        File file = new File("SundaLangOutput.java");
-
-        PrintWriter printWriter = new PrintWriter(file);
-        printWriter.println("public class SundaLangOutput { public static void main(String[] args) { " + code + " } }");
-        printWriter.close();
-
-        Iterable<? extends JavaFileObject> fileObjects = fileManager.getJavaFileObjects(file);
-        if(!compiler.getTask(null, fileManager, null, null, null, fileObjects).call())
-            throw new Exception("Aya kasalahan nalika kompilasi, urang teu ngarti mun ieu mah. Kodena geus di cek deui mang?");
-
-        URL[] urls = new URL[]{
-                new File("").toURI().toURL()
-        };
-
-        URLClassLoader urlClassLoader = new URLClassLoader(urls);
-        Object sundaLang = urlClassLoader.loadClass("SundaLangOutput").getDeclaredConstructor().newInstance();
-        sundaLang.getClass().getMethod("main").invoke(sundaLang);
+    public static void main(String[] args) throws Exception {
+        Thread.setDefaultUncaughtExceptionHandler(exceptionHandler);
+        Scanner scanner = new Scanner(System.in);
+        System.out.println("Masukkan file bs (*.bs):");
+        String path = scanner.nextLine();
+        compileAndRun(path);
     }
 
-    public static void read(String location) throws Exception {
-        if (!location.endsWith(".westjava"))
-            throw new Exception("SundaFile na teu valid, nu bener atuh kang.");
+    private static void compileAndRun(String filePath) throws Exception {
+        if (!filePath.endsWith(FILE_EXTENSION)) {
+            throw new Exception("File bs tidak valid.");
+        }
 
-        StringBuilder code = new StringBuilder();
-        File file = new File(location);
-        Scanner scanner = new Scanner(file);
-
-        while (scanner.hasNext())
-            code.append(scanner.nextLine());
-
-        scanner.close();
-
-        dictionary(code.toString());
-    }
-
-    public static void dictionary(String code) throws Exception {
-        Map<String, String> dictionary = new LinkedHashMap<>();
-
-        // data types
-        dictionary.put("NomerPangleutikna", "byte");
-        dictionary.put("NomerLeutik", "short");
-        dictionary.put("Nomer", "int");
-        dictionary.put("NomerBadag", "long");
-        dictionary.put("NomerFraksi", "float");
-        dictionary.put("NomerFraksiBadag", "double");
-        dictionary.put("Surat", "char");
-        dictionary.put("Kecap", "String");
-
-        // logical operator
-        dictionary.put("lamun", "if");
-        dictionary.put("lamunhenteu", "else");
-        dictionary.put("lamundeui", "else if");
-
-        // function
-        dictionary.put("cetakEuy", "System.out.println");
-
-        // access modifiers
-        dictionary.put("jeungsorangan", "private");
-        dictionary.put("jeungurang", "protected");
-        dictionary.put("jeungkabehan", "public");
-
-        // loops
-        dictionary.put("iraha", "while");
-        dictionary.put("pikeun", "for");
-
-        // others
-        dictionary.put("nyoba", "try");
-        dictionary.put("tangkep", "catch");
-        dictionary.put("tungtungna", "finally");
-        dictionary.put("angger", "final");
-        dictionary.put("baledog", "throw");
-        dictionary.put("baledogkeun", "throws");
+        String code = readCodeFromFile(filePath);
+        Map<String, String> dictionary = createDictionary();
 
         for (Map.Entry<String, String> entry : dictionary.entrySet()) {
             code = code.replaceAll("(?i)\\b" + entry.getKey() + "\\b", entry.getValue());
         }
 
+        code = formatCode(code);
+        compileAndExecuteCode(code);
+    }
+
+    private static String readCodeFromFile(String filePath) throws IOException {
+        StringBuilder code = new StringBuilder();
+        File file = new File(filePath);
+        Scanner scanner = new Scanner(file);
+
+        while (scanner.hasNext()) {
+            code.append(scanner.nextLine());
+        }
+
+        scanner.close();
+        return code.toString();
+    }
+
+    private static Map<String, String> createDictionary() {
+        Map<String, String> dictionary = new LinkedHashMap<>();
+
+        dictionary.put("Bit", "byte");
+        dictionary.put("Nomor", "short");
+        dictionary.put("NomorSedang", "int");
+        dictionary.put("NomorBesar", "long");
+        dictionary.put("NomorFloat", "float");
+        dictionary.put("NomorDouble", "double");
+        dictionary.put("Karakter", "char");
+        dictionary.put("Kalimat", "String");
+
+        dictionary.put("jika", "if");
+        dictionary.put("lantas", "else");
+        dictionary.put("jika lagi", "else if");
+
+        dictionary.put("cetak", "System.out.println");
+
+        dictionary.put("privat", "private");
+        dictionary.put("proteksi", "protected");
+        dictionary.put("publik", "public");
+
+        dictionary.put("ketika", "while");
+        dictionary.put("ulangi", "for");
+
+        dictionary.put("coba", "try");
+        dictionary.put("tangkap", "catch");
+        dictionary.put("akhir", "finally");
+        dictionary.put("konstan", "final");
+        dictionary.put("lepas", "throw");
+        dictionary.put("lepaskan", "throws");
+
+        return dictionary;
+    }
+
+    private static String formatCode(String code) {
         code = code.trim().replaceAll(" +", " ");
         code = code.replaceAll("\\R", " ");
         code = code.replace(";", ";\n");
-
-        run(code);
+        return code;
     }
 
-    public static void main(String[] args) throws Exception {
-        Thread.setDefaultUncaughtExceptionHandler(exceptionHandler);
-        Scanner scanner = new Scanner(System.in);
-        System.out.println("Lebetkeun alamat file SundaLang-na (*.westjava):");
-        String path = scanner.nextLine();
+    private static void compileAndExecuteCode(String code) throws Exception {
+        JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
+        StandardJavaFileManager fileManager = compiler.getStandardFileManager(null, null, null);
+        File outputFile = new File(OUTPUT_CLASS_NAME + ".java");
 
-        read(path);
+        try (PrintWriter printWriter = new PrintWriter(outputFile)) {
+            printWriter.println("public class " + OUTPUT_CLASS_NAME + " { public static void " + MAIN_METHOD_NAME + "(String[] args) { " + code + " } }");
+        }
+
+        Iterable<? extends JavaFileObject> fileObjects = fileManager.getJavaFileObjects(outputFile);
+        if (!compiler.getTask(null, fileManager, null, null, null, fileObjects).call()) {
+            throw new Exception("Kesalahan saat kompilasi.");
+        }
+
+        URL[] urls = new URL[]{new File("").toURI().toURL()};
+        URLClassLoader urlClassLoader = new URLClassLoader(urls);
+        Object belajarScript = urlClassLoader.loadClass(OUTPUT_CLASS_NAME).getDeclaredConstructor().newInstance();
+        belajarScript.getClass().getMethod(MAIN_METHOD_NAME).invoke(belajarScript);
     }
 }
